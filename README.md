@@ -53,8 +53,8 @@ graph LR
 
 ### 1. Clone the Repository
 ```bash
-git clone [https://github.com/yourusername/financial-data-pipeline.git](https://github.com/yourusername/financial-data-pipeline.git)
-cd financial-data-pipeline
+git clone [https://github.com/dysrea/financial-forecaster](https://github.com/dysrea/financial-forecaster)
+cd financial-forecaster
 ```
 ### 2. Create Virtual Environment
 ```bash
