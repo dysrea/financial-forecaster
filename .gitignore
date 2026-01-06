@@ -1,2 +1,16 @@
-*.keras
+__pycache__/
+*.pyc
+venv/
+env/
+.env
+*.db
+*.sqlite
+financial_data.db
+data/
 *.csv
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+models/
+*.keras
