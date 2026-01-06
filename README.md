@@ -33,7 +33,7 @@ graph LR
 2.  **SQL Data Warehouse (`financial_data.db`)**: 
     - Persistent storage using **SQLite**.
     - Designed with strict schema constraints (`UNIQUE(ticker, date)`) to ensure data integrity.
-3.  **Hybrid AI Model (`forecaster_pro.py`)**:
+3.  **Hybrid AI Model (`forecaster.py`)**:
     - **CNN Layer**: Extracts short-term volatility patterns and local trends.
     - **LSTM Layer**: Captures long-term temporal dependencies.
     - **Multivariate**: Learns from 3 inputs: Close Price, Volume, and SMA-20.
@@ -96,4 +96,3 @@ python dashboard.py
 - Optimization: The model uses a "Sliding Window" approach (60-day lookback) to predict the T+1 closing price.
 - Lag Reduction: By incorporating Volume and SMA-20 as features, the model reacts faster to trend reversals compared to univariate baselines.
 - Era-Specific Training: The pipeline filters for modern market dynamics (post-2022) to prevent "Price Anchoring" bias from historical lows.
-## Project Structure
