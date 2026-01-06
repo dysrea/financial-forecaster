@@ -5,21 +5,19 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Conv1D, MaxPooling1D
 
-# --- NEW: Import the loader from your database manager ---
+# Import the loader from your database manager
 from db_manager import load_from_db 
 
-# 1. Load Data from SQL (The "Data Engineer" Way)
-print("🔌 Connecting to Database...")
-# We use the function we built in db_manager.py to get clean data
+# Load Data from SQL
+print("Connecting to Database...")
 df = load_from_db('NVDA') 
 
-# Safety Check: Did the database give us data?
+# Safety Check
 if df.empty:
-    print("❌ Error: Database is empty! Did you run 'etl_pipeline.py'?")
+    print("Error: Database is empty. Did you run 'etl_pipeline.py'?")
     exit()
 
-# 2. Preprocessing (Same as before)
-# SQL column names are lowercase ('close', 'volume'), so we match that
+# Preprocessing 
 df['close'] = pd.to_numeric(df['close'], errors='coerce')
 df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
 
@@ -27,16 +25,16 @@ df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
 df['SMA20'] = df['close'].rolling(window=20).mean()
 df.dropna(inplace=True)
 
-# Select features (Note: using lowercase 'close' and 'volume' from SQL)
+# Select features
 features = ['close', 'SMA20', 'volume']
 data_values = df[features].values
-print(f"✅ Data loaded! Shape: {data_values.shape}")
+print(f"Data loaded. Shape: {data_values.shape}")
 
-# 3. Scale Data
+# Scale Data
 scaler = MinMaxScaler(feature_range=(0, 1))
 scaled_data = scaler.fit_transform(data_values)
 
-# 4. Create Sequences (Sliding Window)
+# Sliding Window
 prediction_days = 60
 x_train, y_train = [], []
 
@@ -46,7 +44,7 @@ for x in range(prediction_days, len(scaled_data)):
 
 x_train, y_train = np.array(x_train), np.array(y_train)
 
-# 5. Build Model (Hybrid CNN-LSTM)
+# Build Model
 model = Sequential([
     Conv1D(filters=128, kernel_size=2, activation='relu', input_shape=(x_train.shape[1], x_train.shape[2])),
     MaxPooling1D(pool_size=2),
@@ -61,14 +59,14 @@ model = Sequential([
 
 model.compile(optimizer='adam', loss='mean_squared_error')
 
-# 6. Train
-print("🚀 Training the Brain on SQL Data...")
+# Train
+print("Training on SQL Data...")
 model.fit(x_train, y_train, batch_size=16, epochs=50)
 
-# 7. Save
+# Save
 import os
 if not os.path.exists('models'):
     os.makedirs('models')
     
 model.save('models/nvda_cnn_lstm_v2.keras')
-print("✅ Success! Model trained on Database and saved.")
+print("Success. Model trained on database and saved.")

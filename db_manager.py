@@ -12,7 +12,7 @@ def create_tables():
     conn = get_connection()
     cursor = conn.cursor()
     
-    # Create a table that mimics a real Data Warehouse schema
+    # Create table 
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS stock_prices (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,7 +30,7 @@ def create_tables():
     
     conn.commit()
     conn.close()
-    print(f"✅ Database {DB_NAME} and tables created successfully.")
+    print(f"Database {DB_NAME} and tables created successfully.")
 
 def save_to_db(df, ticker):
     """
@@ -38,40 +38,36 @@ def save_to_db(df, ticker):
     """
     conn = get_connection()
     
-    # --- FIX FOR YFINANCE MULTI-LEVEL COLUMNS ---
     # If columns look like ('Close', 'NVDA'), flatten them to just 'Close'
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
     
-    # 1. Transform: Reset index to make 'Date' a normal column
+    # Reset index to make 'Date' a normal column
     df_clean = df.reset_index()
     
-    # 2. Rename columns to match SQL schema (Clean & Lowercase)
-    # We map common variations just in case
+    # 2. Rename columns to match SQL schema
     df_clean = df_clean.rename(columns={
         "Date": "date", "Open": "open", "High": "high", 
         "Low": "low", "Close": "close", "Volume": "volume",
         "Adj Close": "adj_close" 
     })
     
-    # 3. Add the Ticker column
+    # 3. Add Ticker column
     df_clean['ticker'] = ticker
     
-    # 4. Select ONLY the columns we defined in our SQL schema
-    # This ignores any extra columns/artifacts
+    # Ignore any extra columns/artifacts
     columns_to_keep = ['ticker', 'date', 'open', 'high', 'low', 'close', 'volume']
     
     # Filter the dataframe safely
-    # (intersect checks if columns exist before selecting, preventing crashes)
     available_cols = [c for c in columns_to_keep if c in df_clean.columns]
     df_clean = df_clean[available_cols]
     
-    # 5. Load: Write to SQL
+    # Load
     try:
         df_clean.to_sql('stock_prices', conn, if_exists='append', index=False)
-        print(f"💾 Successfully saved {len(df_clean)} rows for {ticker} to SQL.")
+        print(f"Successfully saved {len(df_clean)} rows for {ticker} to SQL.")
     except Exception as e:
-        print(f"⚠️ Error saving to DB: {e}")
+        print(f"Error saving to DB: {e}")
         
     conn.close()
 
@@ -81,7 +77,6 @@ def load_from_db(ticker):
     """
     conn = get_connection()
     
-    # Standard SQL Query
     query = f"""
     SELECT date, close, volume 
     FROM stock_prices 
@@ -93,6 +88,6 @@ def load_from_db(ticker):
     conn.close()
     return df
 
-# Initialize the DB when this script is run directly
+# Initialize DB when script is run directly
 if __name__ == "__main__":
     create_tables()

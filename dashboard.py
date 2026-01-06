@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
 import time
-import os # <--- NEW: Needed to scan folders
+import os 
 
 from db_manager import load_from_db
 from etl_pipeline import run_pipeline
@@ -13,7 +13,7 @@ from etl_pipeline import run_pipeline
 st.set_page_config(page_title="AI Financial Warehouse", layout="wide", page_icon="🏦")
 st.title("🏦 AI Financial Forecasting Warehouse")
 
-# --- NEW: AUTO-DETECT MODELS ---
+# AUTO-DETECT MODELS 
 def get_available_tickers():
     """Scans the 'models/' folder and returns a list of trained tickers."""
     if not os.path.exists('models'):
@@ -22,41 +22,33 @@ def get_available_tickers():
     tickers = []
     for filename in os.listdir('models'):
         if filename.endswith("_cnn_lstm_v2.keras"):
-            # Filename format: "nvda_cnn_lstm_v2.keras"
-            # We split by "_" and take the first part ("nvda")
             ticker_name = filename.split('_')[0].upper()
             tickers.append(ticker_name)
     return tickers
 
-# --- SIDEBAR ---
 st.sidebar.header("Control Panel")
 
-# 1. Get the list of valid models
+# Get list of valid models
 valid_tickers = get_available_tickers()
 
-# 2. Safety Check: If no models exist, stop here.
+# Safety Check
 if not valid_tickers:
-    st.sidebar.error("❌ No Models Found!")
-    st.warning("Please run 'forecaster_pro.py' to train your first model.")
+    st.sidebar.error("No Models Found!")
+    st.warning("Please run 'forecaster.py' to train model.")
     st.stop()
 
-# 3. Create the Dropdown (No more text input!)
 ticker = st.sidebar.selectbox("Select Asset to Forecast", valid_tickers)
 
 days_history = st.sidebar.slider("History to Plot (Days)", 100, 500, 200)
 
-if st.sidebar.button(f"🔄 Run ETL for {ticker}"):
+if st.sidebar.button(f"Run ETL for {ticker}"):
     with st.spinner("Updating Warehouse..."):
-        # Note: You might need to update etl_pipeline to accept an argument
-        # For now, this runs the default pipeline
         run_pipeline() 
         time.sleep(1)
     st.success("Updated!")
     st.rerun()
 
-# --- THE REST IS THE SAME AS BEFORE ---
-
-# --- 1. LOAD DATA ---
+# LOAD DATA 
 def load_data(ticker_symbol):
     df = load_from_db(ticker_symbol)
     if df.empty: return None
@@ -70,10 +62,10 @@ def load_data(ticker_symbol):
 
 df = load_data(ticker)
 if df is None:
-    st.error(f"❌ No data found for {ticker} in Database. Did you run the ETL pipeline?")
+    st.error(f"No data found for {ticker} in Database. Did you run the ETL pipeline?")
     st.stop()
 
-# --- 2. PREPARE DATA ---
+# PREPARE DATA 
 features = ['close', 'SMA20', 'volume']
 data_values = df[features].values
 
@@ -83,11 +75,11 @@ scaled_data = scaler.fit_transform(data_values)
 close_scaler = MinMaxScaler(feature_range=(0, 1))
 close_scaler.fit(data_values[:, 0].reshape(-1, 1))
 
-# Dynamically load the correct model based on selection
+# Load correct model based on selection
 model_path = f'models/{ticker.lower()}_cnn_lstm_v2.keras'
 model = load_model(model_path)
 
-# --- 3. BATCH PREDICTION (Backtesting) ---
+# BATCH PREDICTION
 past_data = scaled_data[-days_history-60:] 
 
 x_history = []
@@ -101,17 +93,17 @@ predicted_history_prices = close_scaler.inverse_transform(predicted_history)
 
 graph_dates = df.index[-len(predicted_history_prices):]
 
-# --- 4. PREDICT TOMORROW ---
+# PREDICT 
 last_60 = scaled_data[-60:].reshape(1, 60, 3)
 next_day_scaled = model.predict(last_60)
 next_day_price = close_scaler.inverse_transform(next_day_scaled)[0][0]
 
-# --- 5. VISUALIZE ---
+# VISUALIZE 
 st.subheader(f"AI Performance Verification: {ticker}")
 
 fig = go.Figure()
 
-# A. Actual Price
+# Actual Price
 fig.add_trace(go.Scatter(
     x=graph_dates, 
     y=df['close'].tail(len(graph_dates)),
@@ -120,7 +112,7 @@ fig.add_trace(go.Scatter(
     line=dict(color='#00F0FF', width=2)
 ))
 
-# B. AI Prediction (Green Line)
+# Prediction
 fig.add_trace(go.Scatter(
     x=graph_dates, 
     y=predicted_history_prices.flatten(),
@@ -129,7 +121,7 @@ fig.add_trace(go.Scatter(
     line=dict(color='#00FF00', width=2)
 ))
 
-# C. Next Day
+# Next Day
 next_date = df.index[-1] + pd.Timedelta(days=1)
 fig.add_trace(go.Scatter(
     x=[next_date], 
